@@ -13,7 +13,16 @@ use Blocktrail\SDK\WalletSweeper;
 class LaraBlocktrail
 {
     protected $client;
-
+    
+    /**
+     * @param   string      $apiKey         the API_KEY to use for authentication
+     * @param   string      $apiSecret      the API_SECRET to use for authentication
+     * @param   string      $network        the cryptocurrency 'network' to consume, eg BTC, LTC, etc
+     * @param   bool        $testnet        testnet yes/no
+     * @param   string      $apiVersion     the version of the API to consume
+     * @param   null        $apiEndpoint    overwrite the endpoint used
+     *                                      this will cause the $network, $testnet and $apiVersion to be ignored!
+     */
     public function __construct()
     {
         $this->client = new BlocktrailSDK(
@@ -21,62 +30,187 @@ class LaraBlocktrail
             config('larablocktrail.apiPrivateKey'),
             config('larablocktrail.network'),
             config('larablocktrail.testnet'),
-            config('larablocktrail.version')
+            config('larablocktrail.version'),
+            $apiEndpoint = null
         );
     }
+    
+    /**
+     * @return BlocktrailSDK
+     */
     
     public function getClient()
     {
         return $this->client;
     }
     
-    /**
-     * Data Methods
-     */
+    /* Data Methods */
     
+    /**
+     * get a single transaction
+     * @param  string $txhash transaction hash
+     * @return array          associative array containing the response
+     */
     public function transaction($txhash) 
     {
         return $this->client->transaction($txhash);
     }
     
+    /**
+     * get all transaction in a block (paginated)
+     * @param  string|integer   $block   a block hash or a block height
+     * @param  integer          $page    pagination: page number
+     * @param  integer          $limit   pagination: records per page
+     * @param  string           $sortDir pagination: sort direction (asc|desc)
+     * @return array                     associative array containing the response
+     */
     public function blockTransactions($block, $page = 1, $limit = 20, $sortDir = 'asc')
     {
         return $this->client->blockTransactions($block, $page, $limit, $sortDir);
     }
     
+    /**
+     * get an individual block
+     * @param  string|integer $block    a block hash or a block height
+     * @return array                    associative array containing the response
+     */
     public function block($block)
     {
         return $this->client->block($block);
     }
     
+    /**
+     * get the latest block
+     * @return array            associative array containing the response
+     */
     public function blockLatest()
     {
         return $this->client->blockLatest();
     }
     
+    /**
+     * get all blocks (paginated)
+     * @param  integer $page    pagination: page number
+     * @param  integer $limit   pagination: records per page
+     * @param  string  $sortDir pagination: sort direction (asc|desc)
+     * @return array            associative array containing the response
+     */
     public function allBlocks($page = 1, $limit = 20, $sortDir = 'asc')
     {
-        return $this->client->allBlocks($page. $limit. $sortDir);
+        return $this->client->allBlocks($page, $limit, $sortDir);
     }
     
+    /**
+     * get all unspent outputs for an address (paginated)
+     * @param  string  $address address hash
+     * @param  integer $page    pagination: page number
+     * @param  integer $limit   pagination: records per page (max 500)
+     * @param  string  $sortDir pagination: sort direction (asc|desc)
+     * @return array            associative array containing the response
+     */
     public function addressUnspentOutputs($address, $page = 1, $limit = 20, $sortDir = 'asc')
     {
         return $this->client->addressUnspentOutputs($address, $page, $limit, $sortDir);
     }
     
+    /**
+     * get all unconfirmed transactions for an address (paginated)
+     * @param  string  $address address hash
+     * @param  integer $page    pagination: page number
+     * @param  integer $limit   pagination: records per page (max 500)
+     * @param  string  $sortDir pagination: sort direction (asc|desc)
+     * @return array            associative array containing the response
+     */
     public function addressUnconfirmedTransactions($address, $page = 1, $limit = 20, $sortDir = 'asc')
     {
         return $this->client->addressUnconfirmedTransactions($address, $page, $limit, $sortDir);
     }
     
+    /**
+     * get all transactions for an address (paginated)
+     * @param  string  $address address hash
+     * @param  integer $page    pagination: page number
+     * @param  integer $limit   pagination: records per page (max 500)
+     * @param  string  $sortDir pagination: sort direction (asc|desc)
+     * @return array            associative array containing the response
+     */
     public function addressTransactions($address, $page = 1, $limit = 20, $sortDir = 'asc')
     {
         return $this->client->addressTransactions($address, $page, $limit, $sortDir);
     }
     
+    /**
+     * get a single address
+     * @param  string $address address hash
+     * @return array           associative array containing the response
+     */
     public function address($address)
     {
         return $this->client->address($address);
+    }
+    
+    /**
+     * @param float $btcAmount
+     * @return int
+     */
+    public function getSatoshiAmount($btcAmount)
+    {
+        return BlocktrailSDK::toSatoshi($btcAmount);
+    }
+    
+    /**
+     * @param int $satoshiAmount
+     * @return float
+     */
+    public function getBTCAmount($satoshiAmount)
+    {
+        return BlocktrailSDK::toBTC($satoshiAmount);
+    }
+    
+    /* BackupGenerator Methods */
+    
+    /**
+     * @param $primaryMnemonic
+     * @param $backupMnemonic
+     * @param $blocktrailPublicKeys
+     */
+    public function backupGenerator($primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys)
+    {
+        return new BackupGenerator($primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys);
+    }
+    
+    /**
+     * generate PDF document of backup details
+     * 
+     * @param BackupGenerator $backupGenerator
+     * @return string         pdf data, ready to be saved to file or streamed to browser
+     */
+    public function generatePDF(BackupGenerator $backupGenerator)
+    {
+        return $backupGenerator->generatePDF();
+    }
+    
+    /**
+     * generate html document of backup details
+     * 
+     * @param BackupGenerator $backupGenerator
+     * @return string
+     */
+    public function generateBackupHTML(BackupGenerator $backupGenerator)
+    {
+        return $backupGenerator->generateHTML();
+    }
+    
+    /**
+     * generate image file of backup details, ready to
+     *
+     * @param BackupGenerator $backupGenerator
+     * @param null $filename        filename to save image as (optional - if ommited raw image stream is outputted instead)
+     * @return bool
+     */
+    public function generateBackupImg(BackupGenerator $backupGenerator, $fileName = null)
+    {
+        return $backupGenerator->generateImg($fileName);
     }
     
     /* Wallet Methods */
@@ -165,36 +299,6 @@ class LaraBlocktrail
         return $this->client->upgradeKeyIndex($identifier, $keyIndex, $primaryPublicKey);
     }
     
-    public function backupInfo($primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys)
-    {
-        return new BackupGenerator($primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys);
-    }
-    
-    public function generateBackupPDF(BackupGenerator $backupGenerator)
-    {
-        $backupGenerator->generatePDF();
-    }
-    
-    public function generateBackupHTML(BackupGenerator $backupGenerator)
-    {
-        $backupGenerator->generateHTML();
-    }
-    
-    public function generateBackupImg(BackupGenerator $backupGenerator, $fileName)
-    {
-        $backupGenerator->generateImg($fileName);
-    }
-    
-    public function getSatoshiAmount($btcAmount)
-    {
-        return BlocktrailSDK::toSatoshi($btcAmount);
-    }
-    
-    public function getBTCAmount($satoshiAmount)
-    {
-        return BlocktrailSDK::toBTC($satoshiAmount);
-    }
-    
     /**
      * return list of Blocktrail co-sign extended public keys
      *
@@ -279,6 +383,10 @@ class LaraBlocktrail
         return $wallet->getNewAddressPair();
     }
     
+    /**
+     * @return TransactionBuilder
+     */
+     
     public function txBuilder()
     {
         return new TransactionBuilder();
@@ -773,9 +881,26 @@ class LaraBlocktrail
         return $txBuilder->getFeeStrategy();
     }
     
-    public function updateOutputValue(TransactionBuilder $txBuilder, $satoshiAmount, $fee, $val = 0)
+    /**
+     * @param TransactionBuilder $txBuilder
+     * @param bool               $randomizeChangeOutput
+     * @return TransactionBuilder
+     */
+    public function randomizeChangeOutput(TransactionBuilder $txBuilder, $randomizeChangeOutput = true)
     {
-        return $txBuilder->updateOutputValue($val, $satoshiAmount - $fee);
+        return $txBuilder->randomizeChangeOutput($randomizeChangeOutput);
+    }
+    
+    /**
+     * @param TransactionBuilder $txBuilder
+     * @param $idx
+     * @param $val
+     * @return TransactionBuilder
+     * @throws \Exception
+     */
+    public function updateOutputValue(TransactionBuilder $txBuilder, $idx = 0, $satoshiAmount, $val = 0)
+    {
+        return $txBuilder->updateOutputValue($idx, $satoshiAmount - $val);
     }
     
     /**
@@ -783,13 +908,67 @@ class LaraBlocktrail
      *
      * @param TransactionBuilder $txBuilder
      * @param UTXO[] $utxos
-     * @return $this
+     * @return TransactionBuilder
      */
     public function setUtxos(TransactionBuilder $txBuilder, $utxos)
     {
         return $txBuilder->setUtxos($utxos);
     }
     
+    /**
+     * set change address
+     *
+     * @param TransactionBuilder $txBuilder
+     * @param string             $address
+     * @return TransactionBuilder
+     */
+    public function setChangeAddress(TransactionBuilder $txBuilder, $address) 
+    {
+        return $txBuilder->setChangeAddress($address);
+    }
+    
+    /**
+     * @param TransactionBuilder $txBuilder
+     * @return string|null
+     */
+    public function getChangeAddress(TransactionBuilder $txBuilder)
+    {
+        return $txBuilder->getChangeAddress();
+    }
+    
+    /**
+     * @param TransactionBuilder $txBuilder
+     * @return bool
+     */
+    public function shouldRandomizeChangeOuput(TransactionBuilder $txBuilder)
+    {
+        return $txBuilder->shouldRandomizeChangeOuput();
+    }
+    
+    /**
+     * @param TransactionBuilder $txBuilder
+     * @param int $fee
+     * @return TransactionBuilder
+     */
+    public function validateFee(TransactionBuilder $txBuilder, $fee)
+    {
+        return $txBuilder->validateFee($fee);
+    }
+    
+    /**
+     * @param TransactionBuilder $txBuilder
+     * @return int|null
+     */
+    public function getValidateFee(TransactionBuilder $txBuilder)
+    {
+        return $txBuilder->getValidateFee();
+    }
+    
+    /**
+     * @param TransactionBuilder $txBuilder
+     * @param $fee
+     * @return TransactionBuilder
+     */
     public function minimizeTxFee(TransactionBuilder $txBuilder, $fee)
     {
         $outsum = array_sum(array_column($txBuilder->getOutputs(), 'value')) + $fee;
@@ -810,6 +989,14 @@ class LaraBlocktrail
         return $txBuilder;
     }
     
+    /**
+     * @param        $apiKey
+     * @param        $apiSecret
+     * @param string $network
+     * @param bool   $testnet
+     * @param string $apiVersion
+     * @param null   $apiEndpoint
+     */
     public function bitcoinClient()
     {
         return new BlocktrailBitcoinService(
@@ -821,94 +1008,245 @@ class LaraBlocktrail
         );
     }
     
+    /**
+     * gets unspent outputs for an address, returning and array of outputs with hash, index, value, and script pub hex
+     *
+     * @param BlocktrailBitcoinService $bitcoinClient
+     * @param                          $address
+     * @return array        2d array of unspent outputs as ['hash' => $hash, 'index' => $index, 'value' => $value, 'script_hex' => $scriptHex]
+     * @throws \Exception
+     */
+    public function getUnspentOutputs(BlocktrailBitcoinService $bitcoinClient, $address)
+    {
+        return $bitcoinClient->getUnspentOutputs($address);
+    }
+    
+    /**
+     * @param                                $primaryMnemonic
+     * @param                                $primaryPassphrase
+     * @param                                $backupMnemonic
+     * @param array                          $blocktrailPublicKeys
+     * @param BlockchainDataServiceInterface $bitcoinClient
+     * @param string                         $network
+     * @param bool                           $testnet
+     * @throws \Exception
+     */
     public function walletSweeper(
         $primaryMnemonic, $primaryPassphrase, $backupMnemonic, 
-        $blocktrailKeys, BlocktrailBitcoinService $bitcoinClient, 
-        $network = 'btc',  $_testnet = true)
+        $blocktrailPublicKeys, BlocktrailBitcoinService $bitcoinClient, 
+        $network = 'btc',  $testnet = true)
     {
         return new WalletSweeper(
             $primaryMnemonic, $primaryPassphrase, $backupMnemonic, 
-            $blocktrailKeys, $bitcoinClient, $network, $_testnet
+            $blocktrailPublicKeys, $bitcoinClient, $network, $testnet
         );
     }
     
+    /**
+     * discover funds in the wallet
+     *
+     * @param WalletSweeper $walletSweeper
+     * @param int $increment    how many addresses to scan at a time
+     * @return array
+     */
+    public function discoverWalletFunds(WalletSweeper $walletSweeper, $increment = 200)
+    {
+        return $walletSweeper->discoverWalletFunds($increment);    
+    }
+    
+    /**
+     * sweep the wallet of all funds and send to a single address
+     *
+     * @param WalletSweeper     $walletSweeper
+     * @param string            $destinationAddress     address to receive found funds
+     * @param int               $sweepBatchSize         number of addresses to search at a time
+     * @return array            returns signed transaction for sending, success status, and signature count
+     * @throws \Exception
+     */
     public function sweepWallet(WalletSweeper $walletSweeper, $toAddress)
     {
         return $walletSweeper->sweepWallet($toAddress);
     }
     
     /**
+     * @param  WalletSweeper $walletSweeper
+     * disable debug info logging
+     */
+    public function disableLogging(WalletSweeper $walletSweeper)
+    {
+        $walletSweeper->disableLogging();
+    }
+    
+    /**
+     * @param  WalletSweeper $walletSweeper
+     * enable debug info logging (just to console)
+     */
+    public function enableLogging(WalletSweeper $walletSweeper)
+    {
+        $walletSweeper->enableLogging();
+    }
+    
+    /**
      * Webhook Methods
      */
     
+    /**
+     * create a new webhook
+     * @param  string  $url        the url to receive the webhook events
+     * @param  string  $identifier a unique identifier to associate with this webhook
+     * @return array               associative array containing the response
+     */
     public function setupWebhook($url, $identifier)
     {
         return $this->client->setupWebhook($url, $identifier);
     }
     
+    /**
+     * get a paginated list of all webhooks associated with the api user
+     * @param  integer          $page    pagination: page number
+     * @param  integer          $limit   pagination: records per page
+     * @return array                     associative array containing the response
+     */
     public function allWebhooks($page = 1, $limit = 20)
     {
         return $this->client->allWebhooks($page, $limit);
     }
     
+    /**
+     * get an existing webhook by it's identifier
+     * @param string    $identifier     a unique identifier associated with the webhook
+     * @return array                    associative array containing the response
+     */
     public function getWebhook($identifier)
     {
         return $this->client->getWebhook($identifier);
     }
     
+    /**
+     * update an existing webhook
+     * @param  string  $identifier      the unique identifier of the webhook to update
+     * @param  string  $newUrl          the new url to receive the webhook events
+     * @param  string  $newIdentifier   a new unique identifier to associate with this webhook
+     * @return array                    associative array containing the response
+     */
     public function updateWebhook($identifier, $newUrl = null, $newIdentifier = null)
     {
         return $this->client->updateWebhook($identifier, $newUrl, $newIdentifier);
     }
     
+    /**
+     * deletes an existing webhook and any event subscriptions associated with it
+     * @param  string  $identifier      the unique identifier of the webhook to delete
+     * @return boolean                  true on success
+     */
     public function deleteWebhook($identifier)
     {
         return $this->client->deleteWebhook($identifier);
     }
     
+    /**
+     * get a paginated list of all the events a webhook is subscribed to
+     * @param  string  $identifier  the unique identifier of the webhook
+     * @param  integer $page        pagination: page number
+     * @param  integer $limit       pagination: records per page
+     * @return array                associative array containing the response
+     */
     public function getWebhookEvents($identifier, $page = 1, $limit = 20)
     {
         return $this->getWebhookEvents($identifier, $page, $limit);
     }
     
+    /**
+     * subscribes a webhook to transaction events of one particular transaction
+     * @param  string  $identifier      the unique identifier of the webhook to be triggered
+     * @param  string  $transaction     the transaction hash
+     * @param  integer $confirmations   the amount of confirmations to send.
+     * @return array                    associative array containing the response
+     */
     public function subscribeTransaction($identifier, $transaction, $confirmations = 6) 
     {
         return $this->client->subscribeTransaction($identifier, $transaction, $confirmations); 
     }
     
-    public function subscribeAddressTransactions($identifier, $address)
+    /**
+     * subscribes a webhook to transaction events on a particular address
+     * @param  string  $identifier      the unique identifier of the webhook to be triggered
+     * @param  string  $address         the address hash
+     * @param  integer $confirmations   the amount of confirmations to send.
+     * @return array                    associative array containing the response
+     */
+    public function subscribeAddressTransactions($identifier, $address, $confirmations = 6)
     {
-        return $this->client->subscribeAddressTransactions($identifier, $address);   
+        return $this->client->subscribeAddressTransactions($identifier, $address, $confirmations);   
     }
     
+    /**
+     * batch subscribes a webhook to multiple transaction events
+     *
+     * @param  string $identifier   the unique identifier of the webhook
+     * @param  array  $batchData    A 2D array of event data:
+     *                              [address => $address, confirmations => $confirmations]
+     *                              where $address is the address to subscibe to
+     *                              and optionally $confirmations is the amount of confirmations
+     * @return boolean              true on success
+     */
     public function batchSubscribeAddressTransactions($identifier, $batchData)
     {
         return $this->client->subscribeAddressTransactions($identifier, $batchData);
     }
     
+    /**
+     * subscribes a webhook to a new block event
+     * @param  string  $identifier  the unique identifier of the webhook to be triggered
+     * @return array                associative array containing the response
+     */
     public function subscribeNewBlocks($identifier)
     {
         return $this->client->subscribeNewBlocks($identifier);   
     }
     
+    /**
+     * removes an transaction event subscription from a webhook
+     * @param  string  $identifier      the unique identifier of the webhook associated with the event subscription
+     * @param  string  $transaction     the transaction hash of the event subscription
+     * @return boolean                  true on success
+     */
     public function unsubscribeTransaction($identifier, $transaction)
     {
         return $this->client->unsubscribeTransaction($identifier, $transaction);
     }
     
+    /**
+     * removes an address transaction event subscription from a webhook
+     * @param  string  $identifier      the unique identifier of the webhook associated with the event subscription
+     * @param  string  $address         the address hash of the event subscription
+     * @return boolean                  true on success
+     */
     public function unsubscribeAddressTransactions($identifier, $address)
     {
         return $this->client->unsubscribeAddressTransactions($identifier, $address);
     }
     
+    /**
+     * removes a block event subscription from a webhook
+     * @param  string  $identifier      the unique identifier of the webhook associated with the event subscription
+     * @return boolean                  true on success
+     */
     public function unsubscribeNewBlocks($identifier) 
     {
         return $this->client->unsubscribeNewBlocks($identifier);
     }
     
-    public function getWebhookPayload()
+    /**
+     * read and decode the json payload from a webhook's POST request.
+     *
+     * @param bool $returnObject    flag to indicate if an object or associative array should be returned
+     * @return mixed|null
+     * @throws \Exception
+     */
+    public function getWebhookPayload($returnObject = false)
     {
-        return BlocktrailSDK::getWebhookPayload();
+        return BlocktrailSDK::getWebhookPayload($returnObject);
     }
 }
 

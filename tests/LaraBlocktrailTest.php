@@ -108,7 +108,41 @@ class LaraBlockTrailTest extends Orchestra\Testbench\TestCase
     
     public function testTransactionMethods()
     {
-        $this->assertInstanceOf('Blocktrail\SDK\TransactionBuilder', LaraBlockTrail::txBuilder());
+        $txBuilder = LaraBlockTrail::txBuilder();
+        
+        $this->assertInstanceOf('Blocktrail\SDK\TransactionBuilder', $txBuilder);
+        
+        $wallet = LaraBlockTrail::initWallet($this->payIdentifier, $this->payPassphrase);
+        
+        $txBuilder = LaraBlocktrail::getCoinSelection($wallet, $txBuilder);
+        
+        $this->assertInstanceOf('Blocktrail\SDK\TransactionBuilder', $txBuilder);
+        
+        $buildTx = LaraBlocktrail::buildTx($wallet, $txBuilder);
+        
+        $this->assertTrue(strlen($buildTx[0][0]['txid']) == 64);
+        
+        $optimalFeePerKB = LaraBlocktrail::getOptimalFeePerKB($wallet);
+        $lowPriorityFeePerKB = LaraBlocktrail::getLowPriorityFeePerKB($wallet);
+
+        $this->assertInternalType("int", $optimalFeePerKB);
+        $this->assertInternalType("int", $lowPriorityFeePerKB);
+        
+        $paymentAddress = LaraBlocktrail::getNewAddress($wallet);
+        
+        $satoshiAmount = LaraBlocktrail::getSatoshiAmount(0.001);
+        
+        $txBuilder = LaraBlocktrail::addRecipients($txBuilder, $paymentAddress, $satoshiAmount);
+        
+        $this->assertInstanceOf('Blocktrail\SDK\TransactionBuilder', $txBuilder);
+        
+        $feeAndChange = LaraBlocktrail::determineFeeAndChange($wallet, $txBuilder, $lowPriorityFeePerKB, $optimalFeePerKB);
+        
+        $this->assertTrue(count($feeAndChange) == 2);
+        
+        $txBuilder = LaraBlocktrail::setFee($txBuilder, $feeAndChange[0]);
+        
+        $this->assertInstanceOf('Blocktrail\SDK\TransactionBuilder', $txBuilder);
     }
 }
 

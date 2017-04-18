@@ -60,7 +60,6 @@ class LaraBlockTrailTest extends Orchestra\Testbench\TestCase
     
     public function testGetClient()
     {
-        
         $res = LaraBlocktrail::getClient();
         $this->assertInstanceOf('Blocktrail\SDK\BlocktrailSDK', $res);
     }
@@ -93,9 +92,24 @@ class LaraBlockTrailTest extends Orchestra\Testbench\TestCase
         $isDeleted = LaraBlocktrail::easyDeleteWallet($this->identifier, $this->passphrase);
         
         $this->assertTrue($isDeleted);
+        
+        $identifier = LaraBlockTrail::getIdentifier($wallet);
+        
+        $this->assertNotNull($identifier);
+        
+        $this->assertArrayHasKey(
+            'max', (array) LaraBlocktrail::walletMaxSpendable($identifier)
+        );
+        
+        $this->assertTrue(count(LaraBlocktrail::getBalance($wallet)) == 2);
+        
+        $this->assertTrue(count(LaraBlocktrail::getNewAddressPair($wallet)) == 2);
     }
     
-    
+    public function testTransactionMethods()
+    {
+        $this->assertInstanceOf('Blocktrail\SDK\TransactionBuilder', LaraBlockTrail::txBuilder());
+    }
 }
 
 

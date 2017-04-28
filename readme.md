@@ -34,7 +34,7 @@ This will add the following lines to your composer.json and download the project
 ./composer.json
 {
     "name": "blockavel/lara-blocktrail",
-    "description": "A dummy project used to test the Laravel Block.io Facade.",
+    "description": "A dummy project used to test the Laravel Blocktrail Facade.",
 
     // ...
 
@@ -119,7 +119,7 @@ class LaraBlocktrailTest extends Model
 {
     public function test()
     {
-        return \LaraBlockIo::getClient();
+        return \LaraBlocktrail::getClient();
     }
 }
 

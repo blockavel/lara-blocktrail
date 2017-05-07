@@ -117,11 +117,23 @@ use Illuminate\Database\Eloquent\Model;
 
 class LaraBlocktrailTest extends Model
 {
-    public function test()
+    public function test($indentifier, $passphrase)
     {
-        return \LaraBlocktrail::getClient();
+        // Call methods on the client
+        
+        $client = \LaraBlocktrail::getClient();
+        
+        $client->initWallet($indentifier, $passphrase);
+        
+        // Or simply through the facade
+        
+        \LaraBlocktrail::initWallet($indentifier, $passphrase);
     }
 }
+
+
+
+
 
 ```
 ## Testing
